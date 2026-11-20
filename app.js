@@ -1,7 +1,8 @@
 /* ============================================================
    bebet — UI / cola entre interface e motor de estratégias
    ============================================================ */
-const ODD_FAVORITA = 1.85;
+/* ODD_FAVORITA vem de strategies.js (escopo global compartilhado no navegador).
+   Não redeclaramos aqui para evitar SyntaxError de identificador duplicado. */
 const $ = (id) => document.getElementById(id);
 const fmtBRL = (v) => "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtPct = (v) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
