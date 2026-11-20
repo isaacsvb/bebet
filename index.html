@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bebet — Assistente de Estratégias de Trade Esportivo</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">⚽📊</span>
+        <div>
+          <h1>bebet</h1>
+          <p class="sub">Estratégias de trade esportivo + recomendação por maior probabilidade — 100% local</p>
+        </div>
+      </div>
+      <div class="bank-pill">
+        <label>Banca (R$)</label>
+        <input id="bankroll" type="number" min="0" step="10" value="1000" />
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="partida">🎯 Analisar partida</button>
+      <button class="tab" data-tab="manual">🧮 Calculadora manual</button>
+      <button class="tab" data-tab="diario">📒 Diário</button>
+      <button class="tab" data-tab="ajuda">📖 Estratégias</button>
+    </nav>
+
+    <!-- ============ ABA PARTIDA ============ -->
+    <main class="grid tabpane" data-pane="partida">
+      <section class="card input-card">
+        <h2>Dados da partida</h2>
+        <div class="field">
+          <label for="p-evento">Jogo</label>
+          <input id="p-evento" type="text" placeholder="Ex: Flamengo x Palmeiras" />
+        </div>
+
+        <h3 class="sec">Odds 1X2 <span class="opt">(obrigatório p/ recomendar)</span></h3>
+        <div class="row3">
+          <div class="field"><label>Casa (1)</label><input id="p-oddCasa" type="number" step="0.01" placeholder="1.90"></div>
+          <div class="field"><label>Empate (X)</label><input id="p-oddEmpate" type="number" step="0.01" placeholder="3.40"></div>
+          <div class="field"><label>Fora (2)</label><input id="p-oddFora" type="number" step="0.01" placeholder="4.00"></div>
+        </div>
+
+        <h3 class="sec">Gols e BTTS <span class="opt">(opcional)</span></h3>
+        <div class="row">
+          <div class="field"><label>Over 2.5</label><input id="p-oddOver25" type="number" step="0.01" placeholder="1.95"></div>
+          <div class="field"><label>Under 2.5</label><input id="p-oddUnder25" type="number" step="0.01" placeholder="1.85"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Ambas marcam — Sim</label><input id="p-oddBttsSim" type="number" step="0.01" placeholder="1.88"></div>
+          <div class="field"><label>Ambas marcam — Não</label><input id="p-oddBttsNao" type="number" step="0.01" placeholder="1.92"></div>
+        </div>
+
+        <h3 class="sec">Fundamentos <span class="opt">(opcional — refinam a probabilidade)</span></h3>
+        <div class="row">
+          <div class="field"><label>Média gols marcados — Casa</label><input id="p-mediaGolsCasa" type="number" step="0.1" placeholder="1.8"></div>
+          <div class="field"><label>Média gols marcados — Fora</label><input id="p-mediaGolsFora" type="number" step="0.1" placeholder="1.1"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Gols sofridos/jogo — Casa</label><input id="p-golsSofridosCasa" type="number" step="0.1" placeholder="0.9"></div>
+          <div class="field"><label>Gols sofridos/jogo — Fora</label><input id="p-golsSofridosFora" type="number" step="0.1" placeholder="1.4"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Posição na tabela — Casa</label><input id="p-posClassCasa" type="number" step="1" placeholder="3"></div>
+          <div class="field"><label>Posição na tabela — Fora</label><input id="p-posClassFora" type="number" step="1" placeholder="12"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Forma (pts últimos 5) — Casa</label><input id="p-formaCasa" type="number" min="0" max="15" step="1" placeholder="12"></div>
+          <div class="field"><label>Forma (pts últimos 5) — Fora</label><input id="p-formaFora" type="number" min="0" max="15" step="1" placeholder="5"></div>
+        </div>
+
+        <div class="actions">
+          <button id="p-analisar" class="primary">Recomendar estratégia</button>
+          <button id="p-limpar" class="ghost">Limpar</button>
+        </div>
+
+        <details class="api-box">
+          <summary>🔌 Buscar odds automaticamente (opcional)</summary>
+          <p class="hint">Cole uma chave grátis da <a href="https://the-odds-api.com/" target="_blank" rel="noopener">The Odds API</a> (500 créditos/mês, sem cartão). Sem chave, use a entrada manual — tudo funciona igual.</p>
+          <div class="row">
+            <div class="field"><label>API key</label><input id="api-key" type="password" placeholder="opcional"></div>
+            <div class="field"><label>Esporte</label>
+              <select id="api-sport">
+                <option value="soccer_brazil_campeonato">Brasileirão Série A</option>
+                <option value="soccer_epl">Premier League</option>
+                <option value="soccer_spain_la_liga">La Liga</option>
+                <option value="soccer_uefa_champs_league">Champions League</option>
+              </select>
+            </div>
+          </div>
+          <button id="api-buscar" class="ghost small">Buscar jogos</button>
+          <select id="api-jogos" class="hidden"></select>
+        </details>
+      </section>
+
+      <section class="card result-card">
+        <h2>Recomendação</h2>
+        <div id="p-verdict" class="verdict neutral">
+          <span class="verdict-icon">🎯</span>
+          <div>
+            <strong id="p-verdict-title">Aguardando a partida</strong>
+            <p id="p-verdict-sub">Informe pelo menos as odds 1X2 e clique em “Recomendar estratégia”.</p>
+          </div>
+        </div>
+        <div id="p-ranking" class="ranking"></div>
+        <button id="p-registrar" class="secondary" disabled>Registrar recomendação no diário ↓</button>
+      </section>
+    </main>
+
+    <!-- ============ ABA MANUAL ============ -->
+    <main class="grid tabpane hidden" data-pane="manual">
+      <section class="card input-card">
+        <h2>Calculadora de valor</h2>
+        <div class="field"><label for="evento">Evento / mercado</label>
+          <input id="evento" type="text" placeholder="Ex: Over 2.5 — Flamengo x Palmeiras"></div>
+        <div class="row">
+          <div class="field"><label for="odd">Odd da casa</label><input id="odd" type="number" step="0.01" placeholder="1.85"><small class="hint">Favorita: ≥ 1.85</small></div>
+          <div class="field"><label for="oddContra">Odd contrária <span class="opt">(opcional)</span></label><input id="oddContra" type="number" step="0.01" placeholder="2.10"></div>
+        </div>
+        <div class="field"><label>Como informar sua probabilidade real?</label>
+          <div class="seg">
+            <button class="seg-btn active" data-metodo="prob">Eu estimo %</button>
+            <button class="seg-btn" data-metodo="oddjusta">Odd justa</button>
+            <button class="seg-btn" data-metodo="vig">Tirar da margem</button>
+          </div>
+        </div>
+        <div class="field metodo-prob"><label for="probReal">Probabilidade real (%)</label><input id="probReal" type="number" step="0.5" placeholder="58"></div>
+        <div class="field metodo-oddjusta hidden"><label for="oddJusta">Odd justa</label><input id="oddJusta" type="number" step="0.01" placeholder="1.72"></div>
+        <div class="row">
+          <div class="field"><label for="kellyFrac">Gestão de banca</label>
+            <select id="kellyFrac">
+              <option value="1">Kelly cheio (agressivo)</option>
+              <option value="0.5" selected>Meio Kelly (recomendado)</option>
+              <option value="0.25">Quarto de Kelly (conservador)</option>
+              <option value="0">Stake fixo (%)</option>
+            </select></div>
+          <div class="field"><label for="stakeFixo">Stake fixo (%)</label><input id="stakeFixo" type="number" step="0.5" value="2" disabled></div>
+        </div>
+        <div class="actions">
+          <button id="analisar" class="primary">Analisar</button>
+          <button id="limpar" class="ghost">Limpar</button>
+        </div>
+      </section>
+      <section class="card result-card">
+        <h2>Veredito</h2>
+        <div id="verdict" class="verdict neutral">
+          <span class="verdict-icon">⏳</span>
+          <div><strong id="verdict-title">Aguardando dados</strong><p id="verdict-sub">Preencha a odd e sua estimativa.</p></div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span class="m-label">EV</span><span class="m-value" id="m-ev">—</span></div>
+          <div class="metric"><span class="m-label">Prob. implícita</span><span class="m-value" id="m-implicita">—</span></div>
+          <div class="metric"><span class="m-label">Sua prob.</span><span class="m-value" id="m-prob">—</span></div>
+          <div class="metric"><span class="m-label">Margem (vig)</span><span class="m-value" id="m-vig">—</span></div>
+          <div class="metric highlight"><span class="m-label">Stake sugerido</span><span class="m-value" id="m-stake">—</span></div>
+          <div class="metric"><span class="m-label">Retorno potencial</span><span class="m-value" id="m-retorno">—</span></div>
+        </div>
+        <button id="registrar" class="secondary" disabled>Registrar no diário ↓</button>
+      </section>
+    </main>
+
+    <!-- ============ ABA DIÁRIO ============ -->
+    <main class="tabpane hidden" data-pane="diario">
+      <section class="card">
+        <div class="journal-head">
+          <h2>Diário de operações</h2>
+          <div class="journal-stats">
+            <span>ROI: <strong id="j-roi">—</strong></span>
+            <span>Acerto: <strong id="j-acerto">—</strong></span>
+            <span>Lucro: <strong id="j-lucro">—</strong></span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Data</th><th>Evento</th><th>Odd</th><th>Prob.</th><th>EV</th><th>Stake</th><th>Resultado</th><th></th></tr></thead>
+            <tbody id="journal-body"><tr class="empty"><td colspan="8">Nenhuma operação registrada ainda.</td></tr></tbody>
+          </table>
+        </div>
+        <button id="exportar" class="ghost small">Exportar CSV</button>
+      </section>
+    </main>
+
+    <!-- ============ ABA AJUDA ============ -->
+    <main class="tabpane hidden" data-pane="ajuda">
+      <section class="card">
+        <h2>Estratégias disponíveis</h2>
+        <div id="lista-estrategias" class="estrat-list"></div>
+        <div class="disclaimer">
+          <p><strong>Como a recomendação é escolhida:</strong> o motor avalia todas as estratégias para a partida, estima a probabilidade de acerto de cada uma (a partir das odds sem margem + fundamentos que você informar) e recomenda a de <em>maior probabilidade</em> que ainda tenha <em>valor positivo (+EV)</em> e odd dentro da sua faixa favorita (≥ 1.85).</p>
+          <p>⚠️ Probabilidade estimada não é garantia. Nenhuma ferramenta prevê resultado. Isto é apoio à decisão e disciplina de banca. Aposte apenas o que pode perder.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>bebet — ferramenta local de apoio ao trade esportivo de valor, no espírito do que o Nettuno ensina. Não garante lucro.</p>
+    </footer>
+  </div>
+
+  <script src="strategies.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
