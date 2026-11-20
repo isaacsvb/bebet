@@ -7,14 +7,13 @@ const fmtBRL = (v) => "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits:
 const fmtPct = (v) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
 const num = (id) => { const v = parseFloat($(id).value); return isNaN(v) ? null : v; };
 
-/* ---------- Abas ---------- */
+/* ---------- Abas (registradas primeiro e isoladas, para nunca falharem) ---------- */
+function ativarAba(nome) {
+  document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x.dataset.tab === nome));
+  document.querySelectorAll(".tabpane").forEach((p) => p.classList.toggle("hidden", p.dataset.pane !== nome));
+}
 document.querySelectorAll(".tab").forEach((t) => {
-  t.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
-    t.classList.add("active");
-    document.querySelectorAll(".tabpane").forEach((p) =>
-      p.classList.toggle("hidden", p.dataset.pane !== t.dataset.tab));
-  });
+  t.addEventListener("click", () => ativarAba(t.dataset.tab));
 });
 
 /* ============================================================
