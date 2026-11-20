@@ -110,6 +110,41 @@ $("p-limpar").addEventListener("click", () => {
 
 function kellyLocal(p, odd) { const b = odd - 1; return b > 0 ? Math.max(0, (b*p - (1-p)) / b) : 0; }
 
+/* ---------- Colar e extrair odds (parser) ---------- */
+$("p-extrair").addEventListener("click", () => {
+  const txt = $("p-colar").value;
+  const box = $("p-extraido");
+  if (!txt.trim()) { box.classList.add("hidden"); return; }
+  if (typeof parse !== "function") { box.classList.remove("hidden"); box.innerHTML = "⚠️ Parser não carregou. Recarregue a página."; return; }
+
+  let r;
+  try { r = parse(txt); } catch (e) { box.classList.remove("hidden"); box.innerHTML = "⚠️ Não consegui ler o texto: " + e.message; return; }
+
+  // preenche campos quando encontrou
+  if (r.partida) $("p-evento").value = `${r.partida.casa} x ${r.partida.fora}`;
+  else if (r.nomeCasa && r.nomeFora) $("p-evento").value = `${r.nomeCasa} x ${r.nomeFora}`;
+  if (r.oddCasa) $("p-oddCasa").value = r.oddCasa;
+  if (r.oddEmpate) $("p-oddEmpate").value = r.oddEmpate;
+  if (r.oddFora) $("p-oddFora").value = r.oddFora;
+
+  // resumo do que foi entendido (para o usuário conferir)
+  const linhas = [];
+  if (r.selecoes && r.selecoes.length) {
+    r.selecoes.forEach((s) => linhas.push(`<li><b>${escapeHtml(s.nome)}</b> → melhor back <b>${s.melhorBack.toFixed(2)}</b> <span class="mut">(odds: ${s.odds.map(o=>o).join(", ")})</span></li>`));
+  }
+  box.classList.remove("hidden");
+  box.innerHTML = `
+    <div class="extraido-head">✅ Extraído — confira antes de analisar:</div>
+    <ul>${linhas.join("") || "<li>Nenhuma seleção reconhecida.</li>"}</ul>
+    <div class="extraido-map">
+      Casa: <b>${$("p-oddCasa").value || "—"}</b> ·
+      Empate: <b>${$("p-oddEmpate").value || "—"}</b> ·
+      Fora: <b>${$("p-oddFora").value || "—"}</b>
+    </div>
+    ${r.aviso ? `<div class="extraido-aviso">⚠️ ${escapeHtml(r.aviso)}</div>` : ""}
+    <div class="hint">Confira os valores acima. Ajuste manualmente se algo saiu errado, depois clique em “Recomendar estratégia”.</div>`;
+});
+
 /* ---------- Busca de odds via The Odds API (opcional) ---------- */
 $("api-buscar").addEventListener("click", async () => {
   const key = $("api-key").value.trim();

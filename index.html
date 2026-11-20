@@ -33,6 +33,16 @@
     <main class="grid tabpane" data-pane="partida">
       <section class="card input-card">
         <h2>Dados da partida</h2>
+        <details class="paste-box" open>
+          <summary>📋 Colar odds da AsianOdds / Betfair (recomendado)</summary>
+          <p class="hint">Selecione a tabela de odds na plataforma, copie (Ctrl+C) e cole aqui. O bebet extrai os times e as melhores odds de back automaticamente.</p>
+          <textarea id="p-colar" rows="5" placeholder="Cole aqui o texto copiado da tela de odds..."></textarea>
+          <div class="actions">
+            <button id="p-extrair" class="ghost small">Extrair e preencher ↓</button>
+          </div>
+          <div id="p-extraido" class="extraido hidden"></div>
+        </details>
+
         <div class="field">
           <label for="p-evento">Jogo</label>
           <input id="p-evento" type="text" placeholder="Ex: Flamengo x Palmeiras" />
@@ -201,7 +211,8 @@
     </footer>
   </div>
 
-  <script src="strategies.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="strategies.js?v=4"></script>
+  <script src="parser.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
