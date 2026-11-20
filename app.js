@@ -23,8 +23,13 @@ document.querySelectorAll(".tab").forEach((t) => {
 let ultimaRecomendacao = null;
 
 function lerContexto() {
+  // deriva nomes dos times a partir do campo "Jogo" (A x B) para usar na seleção EN
+  const ev = $("p-evento").value.trim();
+  let nomeCasa = null, nomeFora = null;
+  const mjogo = ev.match(/^(.+?)\s+(?:x|v|vs\.?|×|–|—|-)\s+(.+)$/i);
+  if (mjogo) { nomeCasa = mjogo[1].trim(); nomeFora = mjogo[2].trim(); }
   return {
-    evento: $("p-evento").value.trim(),
+    evento: ev, nomeCasa, nomeFora,
     oddCasa: num("p-oddCasa"), oddEmpate: num("p-oddEmpate"), oddFora: num("p-oddFora"),
     oddOver25: num("p-oddOver25"), oddUnder25: num("p-oddUnder25"),
     oddBttsSim: num("p-oddBttsSim"), oddBttsNao: num("p-oddBttsNao"),
@@ -52,6 +57,9 @@ $("p-analisar").addEventListener("click", () => {
     `${recomendada.nome} — ${recomendada.lado}`,
     resumo);
 
+  // bloco "Onde apostar na AsianConnect" (nomes em inglês + odd aceitável)
+  renderOndeApostar(recomendada);
+
   // ranking
   const banca = num("bankroll") || 0;
   $("p-ranking").innerHTML = todas.map((r, i) => {
@@ -70,8 +78,9 @@ $("p-analisar").addEventListener("click", () => {
       <div class="rank-meta">
         <span>Prob.: <b>${pct}%</b></span>
         <span>Odd: <b>${r.odd.toFixed(2)}</b></span>
-        <span>Entrada: <b>${r.lado}</b></span>
+        <span>Odd mín.: <b>${r.oddMinima ? r.oddMinima.toFixed(2) : "—"}</b></span>
       </div>
+      ${r.mercadoEN ? `<div class="rank-aposta">📍 <code>${escapeHtml(r.mercadoEN)}</code> → <code>${escapeHtml(r.selecaoEN)}</code></div>` : ""}
       <div class="rank-motivo">${r.motivo}</div>
     </div>`;
   }).join("");
@@ -110,6 +119,28 @@ $("p-limpar").addEventListener("click", () => {
 });
 
 function kellyLocal(p, odd) { const b = odd - 1; return b > 0 ? Math.max(0, (b*p - (1-p)) / b) : 0; }
+
+/* Monta o bloco "Onde apostar na AsianConnect" com nomes em inglês e odd aceitável */
+function renderOndeApostar(rec) {
+  const box = $("p-ondeapostar");
+  if (!box) return;
+  const oddMin = rec.oddMinima ? rec.oddMinima.toFixed(2) : "—";
+  const oddAtual = rec.odd.toFixed(2);
+  const okValor = rec.oddMinima ? rec.odd >= rec.oddMinima : false;
+  const okFaixa = rec.odd >= ODD_FAVORITA;
+  const statusAtual = (okValor && okFaixa) ? "✅" : okValor ? "🟡" : "🚫";
+  box.classList.remove("hidden");
+  box.innerHTML = `
+    <div class="oa-head">📍 Onde apostar na AsianConnect</div>
+    <div class="oa-row"><span class="oa-k">Mercado (Market)</span><code class="oa-v">${escapeHtml(rec.mercadoEN || "—")}</code></div>
+    <div class="oa-row"><span class="oa-k">Seleção (Selection)</span><code class="oa-v">${escapeHtml(rec.selecaoEN || rec.lado)}</code></div>
+    <div class="oa-odds">
+      <div><span class="oa-k">Odd mínima p/ valor</span><b>${oddMin}</b></div>
+      <div><span class="oa-k">Sua faixa preferida</span><b>≥ ${ODD_FAVORITA.toFixed(2)}</b></div>
+      <div><span class="oa-k">Odd atual</span><b class="${okValor&&okFaixa?'pos':okValor?'':'neg'}">${oddAtual} ${statusAtual}</b></div>
+    </div>
+    <div class="oa-note">Aceite a aposta somente se a odd na tela estiver <b>≥ ${Math.max(rec.oddMinima||0, ODD_FAVORITA).toFixed(2)}</b> (o maior entre a odd mínima de valor e a sua faixa).</div>`;
+}
 
 /* ---------- Colar e extrair odds (parser) ---------- */
 $("p-extrair").addEventListener("click", () => {

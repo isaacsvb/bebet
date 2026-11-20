@@ -63,6 +63,7 @@ const estrategias = [
         p += clamp((ctx.posClassFora - ctx.posClassCasa) / 20, -0.1, 0.1) * 0.12;
       p = clamp(p, 0.05, 0.95);
       return { aplica: p >= 0.55, prob: p, odd, lado: "Vitória do mandante (1)",
+               mercadoEN: "Match Odds", selecaoEN: (ctx.nomeCasa || "Home team") + " (Home / 1)",
                motivo: "Mandante mais forte em forma/tabela; odd ainda recompensa." };
     }
   },
@@ -84,6 +85,7 @@ const estrategias = [
       if (golsEsp) p += clamp((golsEsp - 2.5) / 2.5, -0.15, 0.2) * 0.4;
       p = clamp(p, 0.05, 0.92);
       return { aplica: p >= 0.52, prob: p, odd, lado: "Mais de 2.5 gols",
+               mercadoEN: "Over/Under 2.5 Goals", selecaoEN: "Over 2.5 Goals",
                motivo: `Gols esperados ≈ ${golsEsp.toFixed(2)} (acima de 2.5).` };
     }
   },
@@ -104,6 +106,7 @@ const estrategias = [
       if (golsEsp) p += clamp((2.5 - golsEsp) / 2.5, -0.15, 0.2) * 0.4;
       p = clamp(p, 0.05, 0.92);
       return { aplica: p >= 0.52, prob: p, odd, lado: "Menos de 2.5 gols",
+               mercadoEN: "Over/Under 2.5 Goals", selecaoEN: "Under 2.5 Goals",
                motivo: `Gols esperados ≈ ${golsEsp.toFixed(2)} (abaixo de 2.5).` };
     }
   },
@@ -124,6 +127,7 @@ const estrategias = [
       if (defesaFraca) p += 0.03;
       p = clamp(p, 0.05, 0.9);
       return { aplica: p >= 0.55 && (ataqueOk || defesaFraca), prob: p, odd, lado: "Ambas as equipes marcam",
+               mercadoEN: "Both Teams to Score", selecaoEN: "Yes",
                motivo: "Dois ataques produtivos contra defesas vazadas." };
     }
   },
@@ -144,6 +148,7 @@ const estrategias = [
       if (ctx.formaCasa != null && ctx.formaFora != null && ctx.formaCasa >= ctx.formaFora) p += 0.03;
       p = clamp(p, 0.3, 0.95);
       return { aplica: p >= 0.62 && oddDupla >= 1.5, prob: p, odd: oddDupla, lado: "Mandante não perde (1X)",
+               mercadoEN: "Double Chance", selecaoEN: "Home or Draw (1X)",
                motivo: "Mandante raramente perde; dupla chance protege a entrada." };
     }
   }
@@ -159,9 +164,15 @@ function avaliarTodas(ctx) {
     try { r = e.avaliar(ctx); } catch (_) { r = null; }
     if (!r || r.prob == null) continue;
     const evUnit = ev(r.prob, r.odd);
+    // odd mínima para a aposta ainda ter valor (break-even) = 1 / probabilidade.
+    // abaixo dela, o EV fica negativo. é o "valor aceitável" real da entrada.
+    const oddMinima = r.prob > 0 ? 1 / r.prob : null;
     resultados.push({
       id: e.id, nome: e.nome, descricao: e.descricao,
       aplica: !!r.aplica, prob: r.prob, odd: r.odd, lado: r.lado, motivo: r.motivo,
+      mercadoEN: r.mercadoEN || null, selecaoEN: r.selecaoEN || null,
+      oddMinima,                        // break-even
+      oddMinimaPreferida: ODD_FAVORITA, // sua faixa fixa
       ev: evUnit,
       temValor: evUnit != null && evUnit > 0,
       oddNaFaixa: r.odd >= ODD_FAVORITA
