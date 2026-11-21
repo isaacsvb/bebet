@@ -367,6 +367,97 @@ $("exportar").addEventListener("click", () => {
 
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
+/* ============================================================
+   ABA AO VIVO (precisa do backend local: python3 server.py)
+   ============================================================ */
+let liveSel = null;      // {league, id, name}
+let liveTimer = null;
+
+async function liveFetch(url) {
+  const res = await fetch(url);
+  if (!res.ok) { let e = {}; try { e = await res.json(); } catch(_){} throw new Error(e.erro || ("HTTP " + res.status)); }
+  return res.json();
+}
+
+async function carregarJogosAoVivo() {
+  const status = $("live-status"), list = $("live-list");
+  status.textContent = "Buscando jogos ao vivo...";
+  list.innerHTML = "";
+  try {
+    const d = await liveFetch("/api/live");
+    if (!d.jogos || d.jogos.length === 0) {
+      status.textContent = "Nenhum jogo ao vivo neste momento.";
+      return;
+    }
+    status.textContent = `${d.jogos.length} jogo(s) ao vivo:`;
+    list.innerHTML = d.jogos.map((j) => {
+      const ph = j.home ? `${escapeHtml(j.home.team)} ${j.home.score}` : "";
+      const pa = j.away ? `${j.away.score} ${escapeHtml(j.away.team)}` : "";
+      return `<button class="live-item" data-league="${escapeHtml(j.league)}" data-id="${escapeHtml(j.id)}" data-name="${escapeHtml(j.name)}">
+        <span class="li-min">🔴 ${escapeHtml(j.minute || "")}</span>
+        <span class="li-teams">${ph} <b>x</b> ${pa}</span>
+        <span class="li-lg">${escapeHtml(j.league)}</span>
+      </button>`;
+    }).join("");
+    list.querySelectorAll(".live-item").forEach((b) =>
+      b.addEventListener("click", () => {
+        liveSel = { league: b.dataset.league, id: b.dataset.id, name: b.dataset.name };
+        list.querySelectorAll(".live-item").forEach((x) => x.classList.remove("sel"));
+        b.classList.add("sel");
+        atualizarPainelAoVivo();
+      }));
+  } catch (e) {
+    status.innerHTML = `⚠️ ${escapeHtml(e.message)}.<br>O backend local está rodando? Execute <code>python3 server.py</code> na pasta do projeto e abra <code>http://localhost:8000</code> (não o GitHub Pages).`;
+  }
+}
+
+async function atualizarPainelAoVivo() {
+  if (!liveSel) return;
+  const panel = $("live-panel");
+  $("live-title").textContent = liveSel.name || "Painel ao vivo";
+  panel.innerHTML = '<p class="hint">Carregando estatísticas...</p>';
+  try {
+    const m = await liveFetch(`/api/match?league=${encodeURIComponent(liveSel.league)}&id=${encodeURIComponent(liveSel.id)}`);
+    const r = analisarAoVivo(m);
+    const sh = (m.home && m.home.stats) || {}, sa = (m.away && m.away.stats) || {};
+    const linhaStat = (lbl, k, suf="") =>
+      `<tr><td>${lbl}</td><td class="st-h">${sh[k] ?? "—"}${suf}</td><td class="st-a">${sa[k] ?? "—"}${suf}</td></tr>`;
+    const sinalCls = (f) => f === "forte" ? "sig-forte" : f === "media" ? "sig-media" : "sig-fraca";
+    panel.innerHTML = `
+      <div class="live-score">
+        <span>${escapeHtml(m.home?.team || "Casa")}</span>
+        <b>${m.home?.score ?? 0} x ${m.away?.score ?? 0}</b>
+        <span>${escapeHtml(m.away?.team || "Fora")}</span>
+      </div>
+      <div class="live-min">⏱ ${escapeHtml(m.minute || "")}</div>
+      <table class="live-stats">
+        <thead><tr><th>Estatística</th><th>Casa</th><th>Fora</th></tr></thead>
+        <tbody>
+          ${linhaStat("Posse de bola", "posse", "%")}
+          ${linhaStat("Chutes", "chutes")}
+          ${linhaStat("Chutes no gol", "chutesNoGol")}
+          ${linhaStat("Escanteios", "escanteios")}
+          ${linhaStat("Faltas", "faltas")}
+          ${linhaStat("Amarelos", "amarelos")}
+          ${linhaStat("Vermelhos", "vermelhos")}
+        </tbody>
+      </table>
+      <div class="live-sinais">
+        <div class="ls-head">📡 Sinais ao vivo</div>
+        ${r.sinais.map((s) => `<div class="ls-item ${sinalCls(s.forca)}">${escapeHtml(s.texto)}</div>`).join("")}
+      </div>
+      <p class="hint">Use estes sinais com as odds ao vivo da AsianConnect. Sinal não é garantia — confirme o valor antes de entrar.</p>`;
+  } catch (e) {
+    panel.innerHTML = `<p class="hint">⚠️ ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+$("live-refresh") && $("live-refresh").addEventListener("click", carregarJogosAoVivo);
+$("live-auto") && $("live-auto").addEventListener("change", (e) => {
+  if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+  if (e.target.checked) liveTimer = setInterval(() => { carregarJogosAoVivo(); atualizarPainelAoVivo(); }, 20000);
+});
+
 /* ---------- Lista de estratégias (aba ajuda) ---------- */
 function renderEstrategias() {
   if (typeof estrategias === "undefined") return;

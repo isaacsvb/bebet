@@ -6,7 +6,21 @@ Roda 100% no navegador. Nenhum dado sai da sua máquina. Não precisa instalar n
 
 ## Como usar
 
-Abra o arquivo **`index.html`** no navegador (duplo clique). Pronto.
+**Modo simples (só análise manual/colar odds):** abra o arquivo **`index.html`** no navegador (duplo clique).
+
+**Modo completo com estatísticas AO VIVO (o "bot" local):**
+precisa de Python 3 (já vem no Mac/Linux; no Windows instale de python.org). No terminal, dentro da pasta do projeto:
+
+```bash
+python3 server.py
+```
+
+Depois abra **http://localhost:8000** no navegador. A aba **🔴 Ao vivo** vai listar os jogos em andamento e mostrar placar, estatísticas (posse, chutes, chutes no gol, escanteios, cartões) e **sinais ao vivo** — tudo automático.
+
+- Fonte dos dados ao vivo: **ESPN** (grátis, sem chave, sem cadastro).
+- O backend serve a página e a API na mesma origem (`localhost:8000`), então não há bloqueio de CORS.
+- Nada é enviado para fora: o servidor só busca dados públicos da ESPN e repassa para a sua página local.
+- A aba Ao vivo **só funciona** abrindo por `http://localhost:8000` (com o `server.py` rodando). Pelo GitHub Pages ela não tem backend e fica inativa — as outras abas funcionam normalmente.
 
 ### Abas
 
@@ -41,5 +55,7 @@ Isto é **apoio à decisão e disciplina de banca**, não uma bola de cristal. P
 
 - `index.html` — interface
 - `style.css` — estilo
-- `strategies.js` — motor de estratégias (puro, testável em Node)
-- `app.js` — cola entre interface e motor + diário
+- `strategies.js` — motor de estratégias + análise ao vivo (puro, testável em Node)
+- `parser.js` — leitor do texto de odds colado (Betfair/AsianOdds)
+- `app.js` — cola entre interface e motor + diário + aba ao vivo
+- `server.py` — backend local (o "bot"): serve a página e busca estatísticas ao vivo da ESPN

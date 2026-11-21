@@ -218,7 +218,93 @@ function montarResumo(rec, nivel) {
   }
 }
 
+/* ============================================================
+   ANÁLISE AO VIVO (in-play)
+   Recebe o estado atual do jogo e devolve leituras acionáveis.
+   match = {
+     minute: "53'", home:{team,score,stats}, away:{team,score,stats}
+   }
+   stats por lado: posse, chutes, chutesNoGol, escanteios, faltas,
+                   amarelos, vermelhos, impedimentos, defesas
+   ============================================================ */
+function minutoNum(min) {
+  if (min == null) return null;
+  const m = String(min).match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function analisarAoVivo(match) {
+  const h = match.home || {}, a = match.away || {};
+  const sh = h.stats || {}, sa = a.stats || {};
+  const min = minutoNum(match.minute);
+  const golsTotal = (h.score || 0) + (a.score || 0);
+  const sinais = [];
+
+  const chutesGolTot = (sh.chutesNoGol || 0) + (sa.chutesNoGol || 0);
+  const chutesTot = (sh.chutes || 0) + (sa.chutes || 0);
+  const escanteiosTot = (sh.escanteios || 0) + (sa.escanteios || 0);
+
+  // pressão ofensiva do jogo (quanto de finalização está acontecendo)
+  // referência: ~1 chute no gol a cada ~6 min é jogo movimentado
+  let indiceGol = null;
+  if (min && min > 10) {
+    const ritmo = chutesGolTot / (min / 10); // chutes no gol por 10 min
+    indiceGol = ritmo;
+  }
+
+  // ---- leitura para OVER/UNDER ----
+  if (min != null) {
+    if (golsTotal === 0 && min >= 55) {
+      if (chutesGolTot >= 6 || escanteiosTot >= 7) {
+        sinais.push({ tipo: "over", forca: "media",
+          texto: `0 gols aos ${min}', mas muita pressão (${chutesGolTot} chutes no gol, ${escanteiosTot} escanteios). Gol pode sair — Over ao vivo pode ter valor.` });
+      } else {
+        sinais.push({ tipo: "under", forca: "forte",
+          texto: `0 gols aos ${min}' com pouca finalização (${chutesGolTot} chutes no gol). Jogo travado — tende a Under.` });
+      }
+    }
+    if (golsTotal >= 2 && min <= 60) {
+      sinais.push({ tipo: "over", forca: "media",
+        texto: `${golsTotal} gols já aos ${min}'. Jogo aberto — tendência de mais gols (Over).` });
+    }
+    if (golsTotal <= 1 && min >= 75 && chutesGolTot < 7) {
+      sinais.push({ tipo: "under", forca: "media",
+        texto: `Apenas ${golsTotal} gol(s) aos ${min}' e ritmo baixo. Placar tende a se manter (Under / resultado atual).` });
+    }
+  }
+
+  // ---- quem está dominando (para back / próximo gol) ----
+  const domCasa = (sh.posse || 50) - (sa.posse || 50);
+  const finCasa = (sh.chutesNoGol || 0) - (sa.chutesNoGol || 0);
+  if (Math.abs(domCasa) >= 15 || Math.abs(finCasa) >= 3) {
+    const quem = (domCasa + finCasa * 5) >= 0 ? h : a;
+    const nome = quem.team || (quem === h ? "mandante" : "visitante");
+    const atras = (quem.score || 0) < ((quem === h ? a.score : h.score) || 0);
+    sinais.push({ tipo: "dominio", forca: atras ? "forte" : "media",
+      texto: `${nome} dominando (posse ${quem === h ? sh.posse : sa.posse}%, ${quem === h ? sh.chutesNoGol : sa.chutesNoGol} no gol)` +
+             (atras ? ` e está atrás no placar — pressão alta por gol.` : `. Candidato ao próximo gol.`) });
+  }
+
+  // ---- cartão vermelho muda tudo ----
+  if ((sh.vermelhos || 0) > 0 || (sa.vermelhos || 0) > 0) {
+    const quemFora = (sh.vermelhos || 0) > 0 ? (h.team || "mandante") : (a.team || "visitante");
+    sinais.push({ tipo: "vermelho", forca: "forte",
+      texto: `Cartão vermelho (${quemFora} com um a menos). Isso costuma reduzir gols desse time e favorecer o adversário.` });
+  }
+
+  if (sinais.length === 0) {
+    sinais.push({ tipo: "neutro", forca: "fraca",
+      texto: "Sem sinal forte ainda — jogo equilibrado ou cedo demais. Aguarde desenvolver." });
+  }
+
+  return {
+    minute: match.minute, placar: `${h.score ?? 0} x ${a.score ?? 0}`,
+    golsTotal, chutesTot, chutesGolTot, escanteiosTot, indiceGol,
+    sinais
+  };
+}
+
 /* Exporta para navegador e Node */
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { estrategias, avaliarTodas, recomendar, ev, semVig, impl, ODD_FAVORITA };
+  module.exports = { estrategias, avaliarTodas, recomendar, analisarAoVivo, ev, semVig, impl, ODD_FAVORITA };
 }

@@ -25,6 +25,7 @@
 
     <nav class="tabs">
       <button class="tab active" data-tab="partida">🎯 Analisar partida</button>
+      <button class="tab" data-tab="live">🔴 Ao vivo</button>
       <button class="tab" data-tab="manual">🧮 Calculadora manual</button>
       <button class="tab" data-tab="diario">📒 Diário</button>
       <button class="tab" data-tab="ajuda">📖 Estratégias</button>
@@ -123,6 +124,33 @@
       </section>
     </main>
 
+    <!-- ============ ABA AO VIVO ============ -->
+    <main class="grid tabpane hidden" data-pane="live">
+      <section class="card">
+        <div class="journal-head">
+          <h2>🔴 Jogos ao vivo</h2>
+          <button id="live-refresh" class="ghost small">↻ Atualizar lista</button>
+        </div>
+        <div id="live-status" class="live-status">Clique em “Atualizar lista” para buscar os jogos ao vivo.</div>
+        <div id="live-list" class="live-list"></div>
+        <p class="hint" id="live-backend-hint">
+          Esta aba precisa do backend local rodando: no terminal, dentro da pasta do projeto, execute
+          <code>python3 server.py</code> e abra <code>http://localhost:8000</code>.
+          A fonte de dados é a ESPN (grátis, sem chave).
+        </p>
+      </section>
+
+      <section class="card">
+        <div class="journal-head">
+          <h2 id="live-title">Painel ao vivo</h2>
+          <label class="auto-wrap"><input type="checkbox" id="live-auto"> auto 20s</label>
+        </div>
+        <div id="live-panel" class="live-panel">
+          <p class="hint">Selecione um jogo à esquerda para ver placar, estatísticas e os sinais ao vivo.</p>
+        </div>
+      </section>
+    </main>
+
     <!-- ============ ABA MANUAL ============ -->
     <main class="grid tabpane hidden" data-pane="manual">
       <section class="card input-card">
@@ -213,8 +241,8 @@
     </footer>
   </div>
 
-  <script src="strategies.js?v=6"></script>
-  <script src="parser.js?v=6"></script>
-  <script src="app.js?v=6"></script>
+  <script src="strategies.js?v=7"></script>
+  <script src="parser.js?v=7"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
