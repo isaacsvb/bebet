@@ -51,6 +51,27 @@ Na aba *Analisar partida* há um bloco "Buscar odds automaticamente". Cole uma c
 
 Isto é **apoio à decisão e disciplina de banca**, não uma bola de cristal. Probabilidade estimada não é garantia. Nenhuma ferramenta prevê o resultado de uma partida. Estatísticas de mercado mostram que a maioria dos apostadores termina no negativo — a vantagem de longo prazo vem de só entrar com valor e respeitar a gestão de banca. **Aposte apenas o que pode perder.**
 
+## Virar um app do Mac (abrir com 1 clique, sem terminal)
+
+Duas formas, da mais simples para a mais "app de verdade":
+
+### Opção 1 — atalho clicável (mais rápido)
+1. Na pasta do projeto, dê **duplo clique em `bebet.command`**.
+2. Na primeira vez o Mac pode bloquear: **clique com o botão direito em `bebet.command` → Abrir → Abrir**. Só precisa fazer isso uma vez.
+3. O servidor sobe e o navegador abre sozinho em `http://localhost:8000`.
+4. Para parar: feche a janelinha do terminal que abriu (ou `Ctrl+C`).
+
+### Opção 2 — aplicativo bebet.app (aparece no Launchpad/Aplicativos)
+1. Dê **duplo clique em `criar-app-mac.command`** (botão direito → Abrir, na 1ª vez).
+2. Ele gera um **`bebet.app`** na mesma pasta.
+3. **Arraste `bebet.app` para a pasta Aplicativos.**
+4. Abra pelo **Launchpad** ou Finder como qualquer app. Na primeira vez: botão direito no app → **Abrir → Abrir**.
+5. Clicar no app inicia o servidor em segundo plano e abre o navegador — **sem janela de terminal**.
+
+> Requisito: Python 3 (já vem no macOS). Se o macOS pedir para instalar as "Command Line Tools" na primeira execução do `python3`, aceite.
+>
+> **Importante:** não mova a pasta do projeto depois de criar o `bebet.app` (o app guarda o caminho dela). Se mover, rode `criar-app-mac.command` de novo.
+
 ## Arquivos
 
 - `index.html` — interface
@@ -59,3 +80,5 @@ Isto é **apoio à decisão e disciplina de banca**, não uma bola de cristal. P
 - `parser.js` — leitor do texto de odds colado (Betfair/AsianOdds)
 - `app.js` — cola entre interface e motor + diário + aba ao vivo
 - `server.py` — backend local (o "bot"): serve a página e busca estatísticas ao vivo da ESPN
+- `bebet.command` — atalho clicável do Mac (duplo clique abre tudo)
+- `criar-app-mac.command` — gera o `bebet.app` para a pasta Aplicativos
