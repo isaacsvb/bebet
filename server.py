@@ -44,36 +44,54 @@ def http_get_json(url, timeout=15):
         return json.loads(r.read().decode("utf-8"))
 
 
-def coletar_ao_vivo():
-    """Varre as ligas e devolve só os jogos em andamento (estado 'in')."""
-    jogos = []
-    for lg in LEAGUES:
-        try:
-            d = http_get_json(ESPN.format(lg=lg))
-        except Exception:
-            continue
-        for e in d.get("events", []):
-            st = e.get("status", {}).get("type", {})
-            if st.get("state") != "in":
+def _scoreboard(lg):
+    """Busca o scoreboard de uma liga; devolve (liga, dados) ou (liga, None)."""
+    try:
+        return lg, http_get_json(ESPN.format(lg=lg))
+    except Exception:
+        return lg, None
+
+
+def _lado(comp):
+    home = away = None
+    for c in comp.get("competitors", []):
+        side = {"team": (c.get("team", {}) or {}).get("displayName"), "score": c.get("score")}
+        if c.get("homeAway") == "home":
+            home = side
+        else:
+            away = side
+    return home, away
+
+
+def coletar_ao_vivo(incluir_proximos=True):
+    """Varre todas as ligas EM PARALELO e devolve jogos ao vivo e, opcionalmente,
+    os próximos a começar. Cada jogo traz 'state' ('in' = ao vivo, 'pre' = agendado)."""
+    import concurrent.futures as cf
+
+    ao_vivo, proximos = [], []
+    with cf.ThreadPoolExecutor(max_workers=12) as pool:
+        for lg, d in pool.map(_scoreboard, LEAGUES):
+            if not d:
                 continue
-            comp = (e.get("competitions") or [{}])[0]
-            home = away = None
-            for c in comp.get("competitors", []):
-                side = {"team": c.get("team", {}).get("displayName"),
-                        "score": c.get("score")}
-                if c.get("homeAway") == "home":
-                    home = side
-                else:
-                    away = side
-            jogos.append({
-                "id": e.get("id"),
-                "league": lg,
-                "name": e.get("name"),
-                "minute": st.get("detail"),
-                "home": home,
-                "away": away,
-            })
-    return jogos
+            for e in d.get("events", []):
+                st = e.get("status", {}).get("type", {})
+                state = st.get("state")
+                comp = (e.get("competitions") or [{}])[0]
+                home, away = _lado(comp)
+                jogo = {
+                    "id": e.get("id"), "league": lg, "name": e.get("name"),
+                    "state": state, "minute": st.get("detail"),
+                    "home": home, "away": away,
+                    "start": e.get("date"),
+                }
+                if state == "in":
+                    ao_vivo.append(jogo)
+                elif state == "pre" and incluir_proximos:
+                    proximos.append(jogo)
+
+    # ordena os próximos por horário de início e limita a 15
+    proximos.sort(key=lambda j: j.get("start") or "")
+    return {"aoVivo": ao_vivo, "proximos": proximos[:15]}
 
 
 # mapeia as chaves da ESPN para nomes amigáveis usados pela nossa página
@@ -159,7 +177,9 @@ class Handler(BaseHTTPRequestHandler):
         # --- API ---
         if path == "/api/live":
             try:
-                self._json(200, {"jogos": coletar_ao_vivo()})
+                r = coletar_ao_vivo(incluir_proximos=True)
+                # mantém a chave 'jogos' (ao vivo) por compat. e adiciona 'proximos'
+                self._json(200, {"jogos": r["aoVivo"], "proximos": r["proximos"]})
             except Exception as ex:
                 self._json(502, {"erro": "Falha ao buscar jogos ao vivo: %s" % ex})
             return

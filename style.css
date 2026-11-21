@@ -139,6 +139,10 @@ code { font-family: ui-monospace, "Cascadia Code", monospace; }
 .li-min { color: var(--red); font-size: 12px; font-weight: 600; }
 .li-teams b { color: var(--muted); margin: 0 4px; }
 .li-lg { color: #6b779e; font-size: 11px; }
+.live-item.pre { opacity: .7; cursor: default; }
+.live-item.pre:hover { border-color: var(--line); }
+.li-pre { color: var(--muted); }
+.live-sep { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; margin: 14px 0 8px; border-top: 1px solid var(--line); padding-top: 12px; }
 #live-backend-hint { margin-top: 14px; }
 .auto-wrap { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
 

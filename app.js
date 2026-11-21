@@ -379,28 +379,54 @@ async function liveFetch(url) {
   return res.json();
 }
 
+function horaLocal(iso) {
+  if (!iso) return "";
+  try { return new Date(iso).toLocaleString("pt-BR", { weekday: "short", hour: "2-digit", minute: "2-digit" }); }
+  catch (_) { return ""; }
+}
+
+function itemJogo(j, aoVivo) {
+  const ph = j.home ? `${escapeHtml(j.home.team)} ${aoVivo ? j.home.score : ""}` : "";
+  const pa = j.away ? `${aoVivo ? j.away.score : ""} ${escapeHtml(j.away.team)}` : "";
+  const sel = aoVivo
+    ? `<span class="li-min">🔴 ${escapeHtml(j.minute || "")}</span>`
+    : `<span class="li-min li-pre">🕒 ${escapeHtml(horaLocal(j.start))}</span>`;
+  return `<button class="live-item${aoVivo ? "" : " pre"}" data-pre="${aoVivo ? "0" : "1"}"
+      data-league="${escapeHtml(j.league)}" data-id="${escapeHtml(j.id)}" data-name="${escapeHtml(j.name)}">
+      ${sel}
+      <span class="li-teams">${ph} <b>x</b> ${pa}</span>
+      <span class="li-lg">${escapeHtml(j.league)}</span>
+    </button>`;
+}
+
 async function carregarJogosAoVivo() {
   const status = $("live-status"), list = $("live-list");
   status.textContent = "Buscando jogos ao vivo...";
   list.innerHTML = "";
   try {
     const d = await liveFetch("/api/live");
-    if (!d.jogos || d.jogos.length === 0) {
+    const aoVivo = d.jogos || [];
+    const proximos = d.proximos || [];
+
+    let html = "";
+    if (aoVivo.length) {
+      status.textContent = `${aoVivo.length} jogo(s) ao vivo:`;
+      html += aoVivo.map((j) => itemJogo(j, true)).join("");
+    } else {
       status.textContent = "Nenhum jogo ao vivo neste momento.";
-      return;
     }
-    status.textContent = `${d.jogos.length} jogo(s) ao vivo:`;
-    list.innerHTML = d.jogos.map((j) => {
-      const ph = j.home ? `${escapeHtml(j.home.team)} ${j.home.score}` : "";
-      const pa = j.away ? `${j.away.score} ${escapeHtml(j.away.team)}` : "";
-      return `<button class="live-item" data-league="${escapeHtml(j.league)}" data-id="${escapeHtml(j.id)}" data-name="${escapeHtml(j.name)}">
-        <span class="li-min">🔴 ${escapeHtml(j.minute || "")}</span>
-        <span class="li-teams">${ph} <b>x</b> ${pa}</span>
-        <span class="li-lg">${escapeHtml(j.league)}</span>
-      </button>`;
-    }).join("");
+    if (proximos.length) {
+      html += `<div class="live-sep">Próximos jogos (agendados)</div>`;
+      html += proximos.map((j) => itemJogo(j, false)).join("");
+    }
+    if (!html) {
+      status.textContent = "Nenhum jogo ao vivo nem agendado nas ligas cobertas agora.";
+    }
+    list.innerHTML = html;
+
     list.querySelectorAll(".live-item").forEach((b) =>
       b.addEventListener("click", () => {
+        if (b.dataset.pre === "1") return; // jogo agendado: sem stats ainda
         liveSel = { league: b.dataset.league, id: b.dataset.id, name: b.dataset.name };
         list.querySelectorAll(".live-item").forEach((x) => x.classList.remove("sel"));
         b.classList.add("sel");
