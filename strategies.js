@@ -304,7 +304,110 @@ function analisarAoVivo(match) {
   };
 }
 
+/* ============================================================
+   PROBABILIDADES AO VIVO — quem ganha + melhor estratégia com %
+   ------------------------------------------------------------
+   Combina:
+   - base: odds pré-jogo (quando existirem) -> prob. justa sem vig
+           senão, um prior pelo domínio atual em campo
+   - ajuste: placar atual + minutos restantes + pressão
+   ============================================================ */
+function _normaliza3(a, b, c) {
+  const s = a + b + c;
+  return s > 0 ? [a / s, b / s, c / s] : [1 / 3, 1 / 3, 1 / 3];
+}
+
+function probabilidadesAoVivo(match) {
+  const h = match.home || {}, a = match.away || {};
+  const sh = h.stats || {}, sa = a.stats || {};
+  const min = minutoNum(match.minute) || 0;
+  const restante = Math.max(0, 90 - min);
+  const gh = h.score || 0, ga = a.score || 0;
+  const odds = match.odds || null;
+
+  // 1) base de "quem ganha" (antes de considerar o placar)
+  let pCasa, pEmp, pFora;
+  if (odds && odds.oddCasa && odds.oddFora) {
+    const ic = 1 / odds.oddCasa, if_ = 1 / odds.oddFora, ie = odds.oddEmpate ? 1 / odds.oddEmpate : 0;
+    [pCasa, pEmp, pFora] = _normaliza3(ic, ie || 0.001, if_);
+  } else {
+    // sem odds: usa domínio em campo como prior aproximado
+    const forcaH = (sh.posse || 50) + (sh.chutesNoGol || 0) * 6 + (sh.chutes || 0) * 1.5;
+    const forcaA = (sa.posse || 50) + (sa.chutesNoGol || 0) * 6 + (sa.chutes || 0) * 1.5;
+    const tot = forcaH + forcaA || 1;
+    pCasa = 0.40 * (forcaH / tot) + 0.12; pFora = 0.40 * (forcaA / tot) + 0.12; pEmp = 1 - pCasa - pFora;
+  }
+
+  // 2) ajuste pelo PLACAR + tempo restante: quem está na frente ganha peso,
+  //    e o peso cresce conforme o jogo acaba (menos tempo p/ virar).
+  const diff = gh - ga;                 // + = casa na frente
+  const fator = 1 - restante / 90;      // 0 no início, ~1 no fim
+  if (diff !== 0) {
+    const empurra = Math.min(0.9, Math.abs(diff) * 0.28 + fator * 0.45);
+    if (diff > 0) { pCasa += (1 - pCasa) * empurra * 0.8; pFora *= (1 - empurra); pEmp *= (1 - empurra * 0.6); }
+    else { pFora += (1 - pFora) * empurra * 0.8; pCasa *= (1 - empurra); pEmp *= (1 - empurra * 0.6); }
+  } else {
+    // empate no placar: perto do fim o empate ganha peso
+    pEmp += (1 - pEmp) * fator * 0.35; pCasa *= (1 - fator * 0.2); pFora *= (1 - fator * 0.2);
+  }
+  [pCasa, pEmp, pFora] = _normaliza3(Math.max(0, pCasa), Math.max(0, pEmp), Math.max(0, pFora));
+
+  // 3) probabilidade de "sair mais gol" (base Poisson simples pelo ritmo)
+  const chutesGol = (sh.chutesNoGol || 0) + (sa.chutesNoGol || 0);
+  const ataque = (sh.escanteios || 0) + (sa.escanteios || 0) + chutesGol * 1.5;
+  const ritmoPorMin = min > 0 ? ataque / min : 0.12;         // "perigo" por minuto
+  const lambdaRest = Math.max(0.05, ritmoPorMin * restante * 0.14); // gols esperados no resto
+  const pMaisUmGol = 1 - Math.exp(-lambdaRest);               // P(≥1 gol no tempo restante)
+
+  return {
+    min, restante, placar: `${gh} x ${ga}`,
+    temOdds: !!odds, provider: odds ? odds.provider : null,
+    vencedor: {
+      casa: { nome: h.team || "Casa", prob: pCasa },
+      empate: { prob: pEmp },
+      fora: { nome: a.team || "Fora", prob: pFora },
+    },
+    pMaisUmGol, golsAtuais: gh + ga,
+  };
+}
+
+/* Escolhe a estratégia ao vivo mais propícia, com % e porquê. */
+function recomendarAoVivo(match) {
+  const pb = probabilidadesAoVivo(match);
+  const cands = [];
+
+  // vencedor mais provável (1X2)
+  const v = pb.vencedor;
+  const trio = [
+    { nome: "Back " + v.casa.nome, mercadoEN: "Match Odds", selecaoEN: v.casa.nome + " (Home / 1)", prob: v.casa.prob },
+    { nome: "Empate", mercadoEN: "Match Odds", selecaoEN: "Draw (X)", prob: v.empate.prob },
+    { nome: "Back " + v.fora.nome, mercadoEN: "Match Odds", selecaoEN: v.fora.nome + " (Away / 2)", prob: v.fora.prob },
+  ].sort((x, y) => y.prob - x.prob);
+  cands.push({ ...trio[0], motivo: `Maior probabilidade de vencer agora (placar ${pb.placar}, ${pb.min}').` });
+
+  // over / under conforme gols restantes
+  // Over = probabilidade de sair pelo menos +1 gol (linha = golsAtuais + 0.5).
+  // Under do mesmo mercado é o complemento. Ancorado na probabilidade real,
+  // sem inflar — evita falsa certeza.
+  const golsTot = pb.golsAtuais;
+  const probOver = Math.min(0.93, Math.max(0.07, pb.pMaisUmGol));
+  const probUnder = 1 - probOver;
+  if (probOver >= probUnder) {
+    cands.push({ nome: "Over (sair mais gol)", mercadoEN: "Over/Under", selecaoEN: `Over ${golsTot + 0.5} Goals`,
+      prob: probOver, motivo: `Ritmo de ataque alto; chance de sair ao menos mais um gol ≈ ${(probOver*100).toFixed(0)}%.` });
+  } else {
+    cands.push({ nome: "Under (segurar o placar)", mercadoEN: "Over/Under", selecaoEN: `Under ${golsTot + 0.5} Goals`,
+      prob: probUnder, motivo: `Pouca criação e ${pb.restante} min restantes; placar tende a se manter (${(probUnder*100).toFixed(0)}%).` });
+  }
+
+  cands.sort((x, y) => y.prob - x.prob);
+  const melhor = cands[0];
+  return { probabilidades: pb, candidatas: cands, melhor,
+    resumo: `Mais propícia: ${melhor.nome} — ${(melhor.prob*100).toFixed(0)}% de chance. ${melhor.motivo}` };
+}
+
 /* Exporta para navegador e Node */
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { estrategias, avaliarTodas, recomendar, analisarAoVivo, ev, semVig, impl, ODD_FAVORITA };
+  module.exports = { estrategias, avaliarTodas, recomendar, analisarAoVivo,
+                     probabilidadesAoVivo, recomendarAoVivo, ev, semVig, impl, ODD_FAVORITA };
 }

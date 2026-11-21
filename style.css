@@ -153,6 +153,27 @@ code { font-family: ui-monospace, "Cascadia Code", monospace; }
 .live-stats th, .live-stats td { padding: 8px 10px; border-bottom: 1px solid var(--line); }
 .live-stats th { color: var(--muted); background: #0e1530; }
 .live-stats .st-h, .live-stats .st-a { text-align: center; font-weight: 600; }
+/* probabilidade de vencer */
+.prob-box { background: #0e1530; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
+.pb-head { font-weight: 600; color: #cdd6ff; font-size: 13.5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pb-src { font-weight: 400; font-size: 11px; color: var(--muted); background: #0b1126; border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
+.pb-row { display: grid; grid-template-columns: 110px 1fr 42px; gap: 10px; align-items: center; margin: 6px 0; font-size: 13px; }
+.pb-bar { height: 10px; background: #1a2446; border-radius: 999px; overflow: hidden; }
+.pb-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), #8a63ff); }
+.pb-bar.emp > span { background: linear-gradient(90deg, #6b779e, #93a0c8); }
+.pb-row b { text-align: right; }
+
+/* estratégia mais propícia (ao vivo) */
+.rec-box { background: linear-gradient(135deg, #16224a, #1d2b58); border: 1px solid var(--accent); border-radius: 12px; padding: 13px 15px; margin-bottom: 14px; }
+.rb-head { font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
+.rb-main { font-size: 17px; font-weight: 700; display: flex; align-items: baseline; gap: 10px; }
+.rb-pct { color: var(--green); font-size: 20px; }
+.rb-aposta { margin: 8px 0 6px; font-size: 12.5px; color: var(--muted); }
+.rb-aposta code { background: #0b1126; border: 1px solid var(--line); border-radius: 5px; padding: 2px 7px; color: #cdd6ff; font-size: 12px; }
+.rb-why { font-size: 12.5px; color: #a9b6e0; line-height: 1.5; }
+.rb-alt { margin-top: 8px; display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.rb-alt b { color: var(--text); }
+
 .live-sinais { background: #0e1530; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
 .ls-head { font-weight: 600; margin-bottom: 8px; color: #cdd6ff; }
 .ls-item { font-size: 13px; padding: 8px 10px; border-radius: 8px; margin-bottom: 6px; border-left: 3px solid var(--line); background: #0b1126; }

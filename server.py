@@ -116,6 +116,38 @@ def _to_num(v):
         return None
 
 
+def _ml_to_decimal(ml):
+    """Converte odd americana (moneyline) para decimal."""
+    try:
+        ml = float(ml)
+    except (TypeError, ValueError):
+        return None
+    if ml > 0:
+        return round(1 + ml / 100.0, 3)
+    if ml < 0:
+        return round(1 + 100.0 / abs(ml), 3)
+    return None
+
+
+def _extrair_odds(summary):
+    """Extrai odds 1X2 (decimais) e linha de gols do pickcenter/odds da ESPN."""
+    blocos = summary.get("pickcenter") or summary.get("odds") or []
+    if not blocos:
+        return None
+    o = blocos[0] if isinstance(blocos, list) else blocos
+    get_ml = lambda k: _ml_to_decimal((o.get(k) or {}).get("moneyLine"))
+    casa = get_ml("homeTeamOdds")
+    fora = get_ml("awayTeamOdds")
+    empate = get_ml("drawOdds")
+    if not (casa or fora or empate):
+        return None
+    return {
+        "provider": (o.get("provider", {}) or {}).get("name"),
+        "oddCasa": casa, "oddEmpate": empate, "oddFora": fora,
+        "overUnder": o.get("overUnder"),
+    }
+
+
 def coletar_estatisticas(league, eid):
     """Busca o boxscore de um jogo e devolve stats normalizadas por lado."""
     d = http_get_json(ESPN_SUM.format(lg=league, eid=eid))
@@ -154,6 +186,7 @@ def coletar_estatisticas(league, eid):
         "clock": status.get("displayClock") or comp.get("status", {}).get("displayClock"),
         "home": sides["home"],
         "away": sides["away"],
+        "odds": _extrair_odds(d),  # odds pré-jogo (DraftKings via ESPN), ou None
     }
 
 

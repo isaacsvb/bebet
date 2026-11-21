@@ -445,7 +445,10 @@ async function atualizarPainelAoVivo() {
   try {
     const m = await liveFetch(`/api/match?league=${encodeURIComponent(liveSel.league)}&id=${encodeURIComponent(liveSel.id)}`);
     const r = analisarAoVivo(m);
+    const rec = recomendarAoVivo(m);          // probabilidades + melhor estratégia
+    const pb = rec.probabilidades, v = pb.vencedor;
     const sh = (m.home && m.home.stats) || {}, sa = (m.away && m.away.stats) || {};
+    const pctBar = (p) => Math.round(p * 100);
     const linhaStat = (lbl, k, suf="") =>
       `<tr><td>${lbl}</td><td class="st-h">${sh[k] ?? "—"}${suf}</td><td class="st-a">${sa[k] ?? "—"}${suf}</td></tr>`;
     const sinalCls = (f) => f === "forte" ? "sig-forte" : f === "media" ? "sig-media" : "sig-fraca";
@@ -456,6 +459,22 @@ async function atualizarPainelAoVivo() {
         <span>${escapeHtml(m.away?.team || "Fora")}</span>
       </div>
       <div class="live-min">⏱ ${escapeHtml(m.minute || "")}</div>
+
+      <div class="prob-box">
+        <div class="pb-head">📊 Probabilidade de vencer ${pb.temOdds ? `<span class="pb-src">base: odds ${escapeHtml(pb.provider || "")}</span>` : `<span class="pb-src">estimado pelo jogo</span>`}</div>
+        <div class="pb-row"><span>${escapeHtml(v.casa.nome)}</span><div class="pb-bar"><span style="width:${pctBar(v.casa.prob)}%"></span></div><b>${pctBar(v.casa.prob)}%</b></div>
+        <div class="pb-row"><span>Empate</span><div class="pb-bar emp"><span style="width:${pctBar(v.empate.prob)}%"></span></div><b>${pctBar(v.empate.prob)}%</b></div>
+        <div class="pb-row"><span>${escapeHtml(v.fora.nome)}</span><div class="pb-bar"><span style="width:${pctBar(v.fora.prob)}%"></span></div><b>${pctBar(v.fora.prob)}%</b></div>
+      </div>
+
+      <div class="rec-box">
+        <div class="rb-head">🎯 Estratégia mais propícia</div>
+        <div class="rb-main">${escapeHtml(rec.melhor.nome)} <span class="rb-pct">${pctBar(rec.melhor.prob)}%</span></div>
+        <div class="rb-aposta">📍 <code>${escapeHtml(rec.melhor.mercadoEN)}</code> → <code>${escapeHtml(rec.melhor.selecaoEN)}</code></div>
+        <div class="rb-why">${escapeHtml(rec.melhor.motivo)}</div>
+        <div class="rb-alt">${rec.candidatas.slice(1).map((c)=>`<span>${escapeHtml(c.nome)}: <b>${pctBar(c.prob)}%</b></span>`).join("")}</div>
+      </div>
+
       <table class="live-stats">
         <thead><tr><th>Estatística</th><th>Casa</th><th>Fora</th></tr></thead>
         <tbody>
